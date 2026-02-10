@@ -3,5 +3,6 @@ env/
 *.egg-info/
 __pycache__/
 *.pyc
-
+readmepipy.md
+dist/
 .DS_Store
