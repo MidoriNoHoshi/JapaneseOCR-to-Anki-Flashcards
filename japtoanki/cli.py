@@ -1,4 +1,3 @@
-# import sys
 import argparse
 from japtoanki.core import navigation, start_processing
 
