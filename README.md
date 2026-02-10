@@ -8,6 +8,7 @@ Depending on the OS, may need to change the first line of the script:
 #!/usr/bin/python3
 ```
 
+For me personally (using Arch):
 ```python
 #!/home/nemi/Raven/JapanesetoAnki/manga-venv/bin/python3
 ```
