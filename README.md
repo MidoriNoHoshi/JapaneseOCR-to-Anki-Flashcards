@@ -8,6 +8,10 @@ Depending on the OS, may need to change the first line of the script:
 #!/usr/bin/python3
 ```
 
+```python
+#!/home/nemi/Raven/JapanesetoAnki/manga-venv/bin/python3
+```
+
 ### Anki Cards:
 *Examples*:
 
