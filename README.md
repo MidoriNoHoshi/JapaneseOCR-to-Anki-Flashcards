@@ -19,9 +19,8 @@ For me personally (using Arch):
 ![Anki Card](./images/2026-02-10-145359_hyprshot.png) ![Anki Card2](./images/2026-02-10-153400_hyprshot.png)
 #### Requirements:
 - [python](https://www.python.org/downloads/)
+- [AnkiConnect](https://github.com/amikey/anki-connect)
 - [manga-ocr](https://github.com/kha-white/manga-ocr)
 - [fugashi](https://github.com/polm/fugashi)
 - [jaconv](https://pypi.org/project/jaconv/)
 - [tqdm](https://github.com/tqdm/tqdm)
-
-
