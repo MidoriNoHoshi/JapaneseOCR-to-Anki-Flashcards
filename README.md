@@ -1,26 +1,33 @@
-Extracts sentences that contain kanji from manga, screenshots, etc, and automatically creates Anki flashcards for later study.
+Extracts sentences containing kanji from manga, screenshots, etc, and automatically creates Anki flashcards for later study.
 
 ---
 
-Depending on the OS, may need to change the first line of the script:
+## Installation
 
-```python
-#!/usr/bin/python3
+###### (.txt files only):
+```
+pip install japtoanki
 ```
 
-For me personally (using Arch):
-```python
-#!/home/nemi/Raven/JapanesetoAnki/manga-venv/bin/python3
+###### OCR Support:
+```
+pip install japtoanki[ocr]
 ```
 
 ### Anki Cards:
 *Examples*:
 
 ![Anki Card](./images/2026-02-10-145359_hyprshot.png) ![Anki Card2](./images/2026-02-10-153400_hyprshot.png)
+## Usage
+
+Requires Anki-connect plugin to be enabled in Anki to work.
+[Anki-Connect](https://github.com/amikey/anki-connect)
+
+
+```
+japtoanki /path/to/manga --deck Kanji_Sentences --tag manga
+```
+
 #### Requirements:
 - [python](https://www.python.org/downloads/)
-- [AnkiConnect](https://github.com/amikey/anki-connect)
-- [manga-ocr](https://github.com/kha-white/manga-ocr)
-- [fugashi](https://github.com/polm/fugashi)
-- [jaconv](https://pypi.org/project/jaconv/)
-- [tqdm](https://github.com/tqdm/tqdm)
+- [Anki](https://apps.ankiweb.net/)

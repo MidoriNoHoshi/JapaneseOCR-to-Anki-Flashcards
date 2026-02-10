@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "japtoanki"
+version = "0.1.0"
+description = "Extracts kanji sentences using OCR for automatic Anki flashcards"
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+  { name = "nemi tatsu", email = "nemitatsu@proton.me" }
+]
+
+dependencies = [
+  "requests",
+  "tqdm",
+  "fugashi",
+  "unidic-lite",
+  "jaconv",
+]
+
+[project.optional-dependencies]
+ocr = [
+  "manga-ocr",
+  "torch",
+  "transformers",
+  "protobuf",
+]
+
+[project.scripts]
+japtoanki = "japtoanki.cli:main"
+
+[tool.setuptools]
+packages = ["japtoanki"]

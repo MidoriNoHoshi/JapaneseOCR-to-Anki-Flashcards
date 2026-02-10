@@ -1,5 +1,3 @@
-#!/home/nemi/Raven/JapanesetoAnki/manga-venv/bin/python3
-
 import os
 import re
 import requests
@@ -9,9 +7,12 @@ import jaconv
 # from pykakasi import kakasi # pykakasi to be replaced by something else. Makes mistakes.
 from tqdm import tqdm
 
-mocr = MangaOcr()
+# mocr = MangaOcr() # Going to try ChatGTP's idea of lazy-loading?
+mocr = None
 # kks = kakasi()
-tagger = Tagger('-Owakati')
+tagger = None
+
+url = "http://localhost:8765" # Connect to Anki Connect port
 
 def containsKanji(text):
     return bool(re.search(r'[\u4e00-\u9fff]', text)) # Doesn't cover all kanji, but it's not as heavy as using regex \p {Han}
@@ -21,9 +22,15 @@ def containsKanji(text):
 #     result = kks.convert(text)
 #     return "".join([item['hira'] for item in result])
 
+def usetagger(): # Also lazy-loading fugashi? Or I guess MeCab
+    global tagger
+    if tagger is None:
+        tagger = Tagger('-Owakati')
+    return tagger
+
 def kanjiToHiragana(text):
     result = []
-    for m in tagger(text):
+    for m in usetagger()(text):
         try:
             kana = m.feature.kana
             if kana:
@@ -34,22 +41,42 @@ def kanjiToHiragana(text):
                 result.append(m.surface)
     return "".join(result)
 
-def create_anki_card(front, back):
-    url = "http://localhost:8765"
+def getDecks():
+    payload = {
+        "action": "deckNames",
+        "version": 6
+    }
+    deckList = requests.post(url, json=payload)
+    deckList.raise_for_status()
+    return deckList.json()["result"]
+
+def createDeck(name):
+    payload = {
+        "action": "createDeck",
+        "version": 6,
+        "params": {
+            "deck": name
+        }
+    }
+    response = requests.post(url, json=payload)
+    response.raise_for_status()
+    return response.json()
+
+def create_anki_card(front, back, deck, tags):
     payload = {
         "action": "addNote",
         "version": 6,
         "params": {
             "note": {
-                "deckName": "Japanese",
+                # "deckName": "Japanese",
+                "deckName": deck,
                 "modelName": "Basic",
                 "fields": {
                     "Front": front,
                     "Back": back
                 },
-                "tags": [
-                    "Irl"
-                ],
+                "tags":tags.split(", "),
+                    # ["Irl"],
                 "options": {
                     "allowDuplicate": False
                 }
@@ -58,18 +85,24 @@ def create_anki_card(front, back):
     }
     try:
         return requests.post(url, json=payload).json()
-    except:
-        return {"Error": "Connection to anki localhost failed"}
+    except requests.RequestException as e:
+        return {"Error": str(e)}
 
-def processFile(file_path):
+def usemocr():
+    global mocr
+    if mocr is None:
+        mocr = MangaOcr()
+    return mocr
+
+def processFile(file_path, deck, tags):
     ext = file_path.lower()
 
     if ext.endswith((".png", ".jpg", ".jpeg", ".webp")):
-        original = mocr(file_path)
+        original = usemocr()(file_path)
         if original.strip():
             if containsKanji(original):
                 hiragana = kanjiToHiragana(original)
-                create_anki_card(hiragana, original)
+                create_anki_card(hiragana, original, deck, tags)
             else:
                 pass
     elif ext.endswith(".txt"):
@@ -81,13 +114,13 @@ def processFile(file_path):
                     clean = s.strip()
                     if containsKanji(clean):
                         hiragana = kanjiToHiragana(clean)
-                        create_anki_card(hiragana, clean)
+                        create_anki_card(hiragana, clean, deck, tags)
                     else:
                         pass
         except Exception as e:
             print(f"Error reading {file_path}: {e}")
 
-def walk(root_dir):
+def walk(root_dir, deck, tags):
     totalFiles = []
     for root, _, files in os.walk(root_dir):
         for file in files:
@@ -96,7 +129,7 @@ def walk(root_dir):
 
     print(f"\n Found {len(totalFiles)} files.")
     for a in tqdm(totalFiles, desc="Creating Anki flashcards", unit="file"):
-        processFile(a)
+        processFile(a, deck, tags)
             # a = os.path.join(root, file)
             # processFile(a)
 
@@ -137,15 +170,10 @@ def navigation(start="."):
 
         print("Invalid choice")
 
-def start_processing(target_path):
+def start_processing(target_path, deck, tags):
+    if deck not in getDecks():
+        createDeck(deck)
     if os.path.isfile(target_path):
-        processFile(target_path)
+        processFile(target_path, deck, tags)
     else:
-        walk(target_path)
-
-if __name__ == "__main__":
-    mangaDir = navigation()
-    if not mangaDir:
-        print("Exiting")
-        exit(1)
-    start_processing(mangaDir)
+        walk(target_path, deck, tags)
