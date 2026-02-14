@@ -11,7 +11,8 @@ import jaconv #type: ignore
 # import json
 # from pykakasi import kakasi # pykakasi to be replaced by something else. Makes mistakes.
 from tqdm import tqdm
-from deep_translator import GoogleTranslator # Supposedly free? #type: ignore
+# from deep_translator import GoogleTranslator # Supposedly free? #type: ignore
+from deep_translator import LibreTranslator # GoogleTranslator giving me issues all day. Too much of a pain in the ass. Wasted so many hours
 from japtoanki.mokuroRunner import kanjiFilter, noiseFilter, splitParagraphs, mokuroRun, extractSentences
 
 tagger = None
@@ -204,16 +205,42 @@ def isthochanhkanji(text):
     # Return each used kanji as a list
     return " ".join(links)
 
-def translate(text, lang):
-    if not lang or not text or not text.strip():
-        return ""
-    try: 
-        time.sleep(2) # Prevent Rate Limiting
-        result =  GoogleTranslator(source='ja', target=lang).translate(text)
-        return result if result is not None else ""
-    except Exception as e:
-        print(f"Translation Error: {str(e)}")
-        return ""
+def translate(text, lang): # Can't fucking figure out this shit. I give up for now.
+    return ""
+
+    # if not isinstance(lang, str) or not lang.strip():
+    #     return ""
+    # if not text or not text.strip():
+    #     return ""
+    #
+    # try: 
+    #     time.sleep(2)  # Prevent Rate Limiting
+    #     result = GoogleTranslator(source="ja", target=lang).translate(text)
+    #     return result if result is not None else ""
+    #
+    # except AttributeError as e:
+    #     print(f"Translation failed - translator object issue: {str(e)}")
+    #     return ""
+    # except Exception as e:
+    #     print(f"Translation Error: {str(e)}")
+    #     return ""
+
+# def translate(text, lang):
+#     if not isinstance(lang, str) or not lang.strip():
+#     # if not lang or not text or not text.strip():
+#         return ""
+#     try: 
+#         time.sleep(2) # Prevent Rate Limiting
+#         translator = GoogleTranslator(source="ja", target=lang)
+#         # result =  GoogleTranslator(source='ja', target=lang).translate(text)
+#
+#         if translator is None:
+#             return ""
+#         result = translator.translate(text)
+#         return result if result is not None else ""
+#     except Exception as e:
+#         print(f"Translation Error: {str(e)}")
+#         return ""
 
 def extract_from_single_image(image_path): # mokuro only runs on directories. So many temporary directory for single images
     with tempfile.TemporaryDirectory() as tmp:

@@ -43,13 +43,11 @@ Examples:
         default=None,
         const="en",
         help="Translate Sentences into desired language using google translate (Default is english (en))"
-
     )
 
     parser.add_argument(
         "--mastered-kanji",
         help="Input media containing already mastered kanji. Database of mastered kanji is [japtoankikanji.txt]"
-
     )
 
     args = parser.parse_args()
