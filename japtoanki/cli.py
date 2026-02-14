@@ -1,9 +1,22 @@
 import argparse
-from japtoanki.core import navigation, start_processing
+import sys
+from japtoanki.core import navigation, startProcessing
 
 def main():
     parser = argparse.ArgumentParser(
-        description="OCR Japanese text and send it to Anki"
+        description="OCR Japanese text and use for Anki flashcards",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    # Process a directory of images:
+    japtoanki /path/to/directory --deck "Japanese manga" --tags "manga, gundam"
+
+    # Text file with translation:
+    japtoanki chat.txt --deck "Japanese Chat" --translate en
+
+    # Interactive navigator (no path argument)
+    japtoanki
+        """
     )
 
     parser.add_argument(
@@ -14,31 +27,49 @@ def main():
 
     parser.add_argument(
         "--deck",
-        default="IRLJapanese-Sentences",
-        help="Anki deck name (default: IRLJapanese-Sentences)"
+        default="Kanji-Sentences",
+        help="Anki deck name (default: Kanji-Sentences)"
     )
 
     parser.add_argument(
         "--tags",
-        default="Irl",
-        help="Comma-separated Anki tags"
+        default="japtoanki",
+        help="Comma separated Anki tags"
+    )
+
+    parser.add_argument(
+        "--translate",
+        nargs="?",
+        default=None,
+        const="en",
+        help="Translate Sentences into desired language using google translate (Default is english (en))"
+
+    )
+
+    parser.add_argument(
+        "--mastered-kanji",
+        help="Input media containing already mastered kanji. Database of mastered kanji is [japtoankikanji.txt]"
+
     )
 
     args = parser.parse_args()
 
     if args.path:
-        start_processing(args.path, deck=args.deck, tags=args.tags)
+        target = args.path
     else:
-        manga_dir = navigation()
-        if manga_dir:
-            start_processing(manga_dir, deck=args.deck, tags=args.tags)
+        print("\n🗂️  Interactive Directory Navigator")
+        print("="*60)
+        target = navigation()
+    if target is None:
+        sys.exit(0)
 
-# def main():
-#     if len(sys.argv) > 1:
-#         start_processing(sys.argv[1])
-#     else:
-#         mangaDir = navigation()
-#         if not mangaDir:
-#             print("Exiting")
-#             return 
-#         start_processing(mangaDir)
+    try:
+        startProcessing(target_path=target, deck=args.deck, tags=args.tags, masteredKanji=args.mastered_kanji, translateLang=args.translate)
+        print("\n✅ Complete")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() # AI explanation:
+    # If you try to import cli from another file, the code inside that block won't run. This prevents your program from starting the CLI navigation menu automatically just because you wanted to import a function from it.
