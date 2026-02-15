@@ -1,4 +1,6 @@
+# PYTHON_ARGCOMPLETE_OK
 import argparse
+import argcomplete #To be able to have [TAB} to show options #type: ignore
 import sys
 from japtoanki.core import navigation, startProcessing
 
@@ -42,14 +44,27 @@ Examples:
         nargs="?",
         default=None,
         const="en",
-        help="Translate Sentences into desired language using google translate (Default is english (en))"
+        help="Translate Sentences into desired language using google translate (Default is en (english))"
+    )
+
+    parser.add_argument(
+        "--no-furigana",
+        action="store_true", # Furigana on default
+        help="Generate furigana (helper hiragana) for the kanji?"
     )
 
     parser.add_argument(
         "--mastered-kanji",
-        help="Input media containing already mastered kanji. Database of mastered kanji is [japtoankikanji.txt]"
+        help="Input document containing already mastered kanji. Database of mastered kanji is [japtoankikanji.txt]"
     )
 
+    parser.add_argument(
+        "--all-sentences",
+        action="store_true",
+        help="Runs japtoanki as if 0 mastered-kanji."
+    )
+
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     if args.path:
@@ -62,10 +77,12 @@ Examples:
         sys.exit(0)
 
     try:
-        startProcessing(target_path=target, deck=args.deck, tags=args.tags, masteredKanji=args.mastered_kanji, translateLang=args.translate)
+        startProcessing(target_path=target, deck=args.deck, tags=args.tags, showFurigana=not args.no_furigana, masteredKanji=args.mastered_kanji, translateLang=args.translate, allSentences=args.all_sentences)
         print("\n✅ Complete")
     except Exception as e:
         print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
