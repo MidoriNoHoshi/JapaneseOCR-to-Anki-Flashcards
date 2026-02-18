@@ -8,7 +8,7 @@ version = "0.1.3"
 description = "extracts kanji sentences using ocr for automatic anki flashcards"
 requires-python = ">=3.12"
 readme = "readmepipy.md"
-license = { text = "mit" }
+license = { text = "MIT" }
 
 authors = [
   { name = "nemi tatsu", email = "nemitatsu@proton.me" }
@@ -19,12 +19,14 @@ dependencies = [
   "tqdm",
   "fugashi",
   "unidic-lite",
+  # "unidic",
   "jaconv",
-  "torch",
-  "transformers",
   "protobuf",
   "deep-translator",
-  "mokuro"
+  "mokuro",
+  "setuptools<70.0.0", # Mokuro needs the older version?
+  "questionary",
+  "argcomplete",
 ]
 
 [project.scripts]

@@ -1,7 +1,8 @@
 import os
 import re
 import shutil
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator #type: ignore
+from questionary import question
 import requests
 import time
 import tempfile
@@ -16,6 +17,19 @@ from tqdm import tqdm
 from japtoanki.mokuroRunner import kanjiFilter, noiseFilter, splitParagraphs, mokuroRun, extractSentences
 
 tagger = None
+
+notDumbTerm = os.environ.get("TERM", "") != "dumb"
+def emoji(emoji, text):
+    return f"{emoji} {text}" if notDumbTerm else text # Disable emojis if the terminal can't handle it
+
+def colour(color, text):
+    if notDumbTerm:
+        return f"\033[{color}m{text}\033[0m"
+    return text
+
+def log(icon, color, text):
+    msg = emoji(icon, text)
+    print(colour(color, msg))
 
 url = "http://localhost:8765" # Connect to Anki Connect port
 # jouzuList = "kanji.txt"
@@ -52,7 +66,7 @@ def storeKanji(file):
         with open(file, 'r', encoding="utf-8") as f:
             return set(re.findall(r'[\u4e00-\u9fff]', f.read()))
     except Exception as e:
-        print(f"Could not extract kanji from {file}: {e}")
+        print(f"⚠️ Could not extract kanji from {file}: {e}")
         return set()
 
 def loadknownSet():
@@ -70,7 +84,7 @@ def updateKanjiList(file):
     newKanji = [k for k in newList if k not in initialList]
 
     if not newKanji:
-        print("Nothing to add to mastered list")
+        print("⚠️ Nothing to add to mastered list")
         return
 
     mastered_ordered = []
@@ -86,7 +100,7 @@ def updateKanjiList(file):
         f.write("\n".join(updated_ordered)) 
 
     knownSet = initialList.union(newList)
-    print(f"Mastered Kanji List Updated: {len(newKanji)}. Total mastered kanji: {len(knownSet)}")
+    print(f"🔄 Mastered Kanji List Updated: {len(newKanji)}. Total mastered kanji: {len(knownSet)}")
 
 # def kanjiToHiragana(text):
 #     result = kks.convert(text)
@@ -95,8 +109,13 @@ def updateKanjiList(file):
 def useTagger(): # Also lazy-loading fugashi? Or I guess MeCab. Splits sentence into individual "tokens" / words.
     global tagger
     if tagger is None:
-        # tagger = Tagger('-Owakati') # Idk what owakati really does honestly
-        tagger = Tagger()
+        try:
+            # tagger = Tagger('-Owakati') # Idk what owakati really does honestly
+            tagger = Tagger()
+        except RuntimeError:
+            print("⚠️ Unidic dictionary missing")
+            print("Run: python -m unidic download")
+            print("And then try again")
     return tagger
 
 def MeCabFilter(tokens, max_symbol_ratio=0.25, min_tokens=3, min_content_pos=1): # Let the Ai do the magic. Don't bother wasting time.
@@ -150,6 +169,13 @@ def MeCabFilter(tokens, max_symbol_ratio=0.25, min_tokens=3, min_content_pos=1):
 
     return True
 
+def chewer(paragraph):
+    return [
+        s.strip()
+        for s in re.split(r"(?<=[。！？])", paragraph)
+        if s.strip()
+    ]
+
 def hiraganaFurigana(tokens):
     hiraganaRes = []
     furiganaRes = []
@@ -175,17 +201,19 @@ def hiraganaFurigana(tokens):
     return sentenceHirgana, sentenceFurigana
 
 def isthochanhkanji(text, ignoreMastered=False):
-    kanjiSet = set(re.findall(r'[\u4e00-\u9fff]', text))
-    if ignoreMastered: # For the all-sentences flag
-        notJouzu = kanjiSet
-    else:
-        notJouzu = [shit for shit in kanjiSet if shit not in knownSet] # Self explanitory XD
-    ### This is a special line, my favourite line XDDDDDDDDDDDD FUCKKKK im retarded
+    passKanji = set()
     links = []
-    for a in sorted(notJouzu):
-        link = f'<a href="https://hochanh.github.io/rtk/{a}/index.html">{a}</a>'
+
+    for unt in text:
+        if not re.match(r'[\u4e00-\u9fff]', unt):
+            continue
+        if unt in passKanji:
+            continue
+        if not ignoreMastered and unt in knownSet:
+            continue
+        passKanji.add(unt)
+        link = f'<a href="https://hochanh.github.io/rtk/{unt}/index.html">{unt}</a>'
         links.append(link)
-    # Return each used kanji as a list
     return " ".join(links)
 
 def translateChunks(sentences, lang, chunkGirth=10):
@@ -196,8 +224,11 @@ def translateChunks(sentences, lang, chunkGirth=10):
     translator = GoogleTranslator(source="ja", target=lang)
     translated_list = [] # The ouput of the chunk
 
-    for i in range(0, len(sentences), chunkGirth):
+    for i in tqdm(range(0, len(sentences), chunkGirth), desc=f"Translating to {lang}", unit="batch"):
         batch = sentences[i : i + chunkGirth]
+
+    # for i in range(0, len(sentences), chunkGirth):
+    #     batch = sentences[i : i + chunkGirth]
 
         enNumberate = "\n".join([f"{index+1}. {text}" for index, text in enumerate(batch)])
         try:
@@ -266,7 +297,7 @@ def extract_sentences_from_input(path):
                     sentences.append(chunk)
                 return sentences
         
-        raise ValueError(f"Unsupported file type: {path}")
+        raise ValueError(f"⚠️ Unsupported file type: {path}")
     if os.path.isdir(path):
 
         if dir_contains_json(path):
@@ -315,7 +346,7 @@ def extract_sentences_from_input(path):
                         # sentences += re.split(r"[。！？\n]+", fh.read())
         return sentences
 
-    raise ValueError(f"Invalid path: {path}")
+    raise ValueError(f"⚠️ Invalid path: {path}")
 
 def ankiPackage(action, **params):
     payload = {"action": action, "version": 6, "params": params}
@@ -328,7 +359,7 @@ def getDecks():
     try: 
         return ankiPackage("deckNames").get("result", [])
     except:
-        print("\n ❌ Cannot connect to Anki")
+        print("\n⚠️ Cannot connect to Anki")
         print("Make sure:")
         print("1. Anki is running")
         print("2. AnkiConnect add-on is installed and enabled (code: 2055492159)")
@@ -442,8 +473,9 @@ def create_anki_card(front, back, hochanhLinks, translation, deck, tags):
 #
 #         print("Invalid choice")
 
-def navigation(start="."):
+def navigation(start=".", current_lang=None):
     current = os.path.abspath(start)
+    lang_label = current_lang if current_lang else "OFF"
     
     while True:
         try:
@@ -459,6 +491,11 @@ def navigation(start="."):
             value="SELECT_CURRENT"
         ))
         choices.append(questionary.Choice(title="  .. (Back)", value="GO_BACK"))
+        choices.append(questionary.Separator())
+        choices.append(questionary.Choice(
+            title=f"🌐 [TOGGLE TRANSLATION: {lang_label}]",
+            value="Toggle_trans"
+        ))
         choices.append(questionary.Separator())
 
         for entry in entries:
@@ -480,10 +517,21 @@ def navigation(start="."):
         ).ask()
 
         if answer == "QUIT" or answer is None:
-            return None
+            return None, current_lang
+
+        if answer == "Toggle_trans":
+            if current_lang:
+                current_lang = None
+                lang_label = "OFF"
+            else:
+                current_lang = questionary.text("Enter desired language code: ", default="en").ask()
+                if not re.match(r"^[a-z]{2}$", current_lang):
+                    current_lang = None
+                lang_label = current_lang if current_lang else "OFF"
+            continue
         
         if answer == "SELECT_CURRENT":
-            return current
+            return current, current_lang
         
         if answer == "GO_BACK":
             current = os.path.dirname(current)
@@ -493,51 +541,67 @@ def navigation(start="."):
         if os.path.isdir(answer):
             current = answer
         else:
-            return answer
+            return answer, current_lang
 
 
 def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=None, translateLang=None, allSentences=False):
     if len(knownSet) > 1:
         loadknownSet()
-        print(f"Loaded {len(knownSet)} known set.")
+        print(f"📚 Loaded {len(knownSet)} known set.")
+        log("📚", 34, f"Loaded {len(knownSet)} known set.")
 
     if masteredKanji:
         updateKanjiList(masteredKanji)
-        print(f"Merged {masteredKanji} with known set.")
+        log("➕", 34, f"Merged {masteredKanji} with known set.")
+
 
     setupAnki(deck)
 
     ankiConnectEnabled = True
     if not getDecks():
-        print("\n Anki-Connect Disabled or not installed. Switching to CSV export mode.")
+        log("🔌", 31, "Anki-Connect disabled or not installed. Switching to CSV export mode.")
         ankiConnectEnabled = False
     else:
         setupAnki(deck)
 
     sentences = extract_sentences_from_input(target_path)
+
+    biteSized = []
+    for bite in sentences:
+        biteSized.extend(chewer(bite))
+    sentences = biteSized
+
     kanjiContainingSentences = [n for n in sentences if n.strip() and containsKanji(n.strip())]
     if len(kanjiContainingSentences) == 0:
-        print(f"No sentences containing kanji found.")
+        log("🚫", 33, "No sentences containing kanji found.")
+
         return
     else:
-        print(f"Found {len(kanjiContainingSentences)} sentences containing kanji.\n")
+        log("🔎", 34, f"Found {len(kanjiContainingSentences)} sentences containing kanji.\n")
+
 
     csv_rows = []
     eligibleSentences = [] # Sentences approved by filters.
+    filterCount = 0
 
-    for txt in tqdm(sentences, desc="Filtering sentences"):
+    for txt in sentences:
         clean = txt.strip()
         if not clean:
+            filterCount += 1
             continue
         if len(clean) < 5:
+            filterCount += 1
             continue
-        tokens = list(useTagger()(clean))
+        tokens = list(useTagger()(clean)) #type: ignore
         if not MeCabFilter(tokens):
+            filterCount += 1
             continue
 
         hiragana, furigana = hiraganaFurigana(tokens)
         links = isthochanhkanji(clean, ignoreMastered=allSentences)
-        if not links: continue # Filter if sentence only has mastered kanji
+        if not links: 
+            filterCount += 1
+            continue # Filter if sentence only has mastered kanji
 
         eligibleSentences.append({
             'clean': clean,
@@ -546,8 +610,11 @@ def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=No
             'links': links
         })
     if not eligibleSentences:
-        print("No valid sentences")
+        print("⚠️ No valid sentences")
         return
+    log("🧹", 33, f"Filtered: {filterCount} sentences.")
+
+
 
     # trans = ""
     toTranslate = []
@@ -578,5 +645,7 @@ def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=No
         print(f"\n Exported {len(csv_rows)} cards to {outputFile}.")
         print(f"Import manually into Anki (File > Import).")
     else: 
-        print(f"\n  Generated deck with {len(eligibleSentences)} cards.")
+        # print(f"\n🌟  Generated deck with {len(eligibleSentences)} cards.")
+        log("🌟", 32, f"Generated deck with {len(eligibleSentences)} cards.")
+
 

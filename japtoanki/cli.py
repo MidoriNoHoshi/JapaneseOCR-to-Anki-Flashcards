@@ -72,12 +72,13 @@ Examples:
     else:
         print("\n🗂️  Interactive Directory Navigator")
         print("="*60)
-        target = navigation()
+        target, nav_lang = navigation()
     if target is None:
         sys.exit(0)
 
     try:
-        startProcessing(target_path=target, deck=args.deck, tags=args.tags, showFurigana=not args.no_furigana, masteredKanji=args.mastered_kanji, translateLang=args.translate, allSentences=args.all_sentences)
+        translateLanguage = args.translate if args.translate else nav_lang
+        startProcessing(target_path=target, deck=args.deck, tags=args.tags, showFurigana=not args.no_furigana, masteredKanji=args.mastered_kanji, translateLang=translateLanguage, allSentences=args.all_sentences)
         print("\n✅ Complete")
     except Exception as e:
         print(f"\n❌ Error: {e}")

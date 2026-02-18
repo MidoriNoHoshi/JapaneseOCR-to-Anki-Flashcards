@@ -24,6 +24,8 @@ Uses Mokuro OCR to find text from images, and MeCab (Fugashi) to filter bad gram
 
 - Easy file navigation.
 
+- Mokuro automatically generates .html files to read manga on the web-browser with selectable text.
+
 ## Installation
 
 ```bash
@@ -53,6 +55,9 @@ japtoanki /path/to/directory --deck Kanji_Sentences --tag manga --no-furigana --
 ```
 
 run `activate-global-python-argcomplete --user` in the terminal so that flags autocomplete when TAB is pressed.
+
+**Warning for manga / lightnovels:**
+The OCR struggles with front matter and is *very* prone to making mistakes and the japtoanki filters struggle with removing these mistakes.
 
 ##### Flags:
 
@@ -91,7 +96,6 @@ Japtoanki creates a custom Anki note type with the following fields:
 #### Cli file navigation
 
 ![FileNavigator](./images/2026-02-14-200851_hyprshot.png)
-
 
 #### Anki cards:
 
