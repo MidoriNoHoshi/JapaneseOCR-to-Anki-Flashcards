@@ -4,13 +4,13 @@
 
 Extracts sentences containing kanji from manga, screenshots, etc, with mokuro and automatically creates Anki flashcards for later study.
 
-Uses Mokuro OCR to find text from images, and MeCab (Fugashi) to filter bad grammar and readings.
+Uses Mokuro OCR to extract text from images, and MeCab (Fugashi) to filter bad grammar and readings.
 
 ---
 
 #### Features:
 
-- Morphological analysis (MeCab / Fugashi) to discard OCR halucinations and junk.
+- Morphological analysis (MeCab / Fugashi) to discard OCR hallucinations and junk.
 
 - Generates standard *furigana* reading.
 
@@ -20,7 +20,7 @@ Uses Mokuro OCR to find text from images, and MeCab (Fugashi) to filter bad gram
 
 - Automatically links every unmastered kanji to the Hochanh RTK Guide.
 
-- Pushes cards directly to Anki when Anki-connect is enabled, otherwise generates .csv decks to manually import into anki.
+- Pushes cards directly to Anki when Anki-connect is enabled, otherwise generates .csv decks to manually import into Anki.
 
 - Easy file navigation.
 
@@ -29,7 +29,7 @@ Uses Mokuro OCR to find text from images, and MeCab (Fugashi) to filter bad gram
 ## Installation
 
 ```bash
-pip install japtoanki
+pip install japtoAnki
 ```
 
 #### Requirements:
@@ -42,44 +42,48 @@ pip install japtoanki
 
 **Command Line Interface**
 
-Running *japtoanki* opens a file navigator.
+Running *japtoAnki* opens a file navigator.
 
 ```bash
-japtoanki
+japtoAnki
 ```
+When running without a path argument, japtoAnki opens an interactive file navigator.
+Translation can be toggled directly inside the navigator.
 
-Highly recommended to use with [Anki-connect](https://github.com/amikey/anki-connect) plugin in Anki. Anki needs to be open as japtoanki runs.
+You can enable/disable translation and set the target language before selecting files.
+
+Highly recommended to use with [Anki-connect](https://github.com/amikey/anki-connect) plugin in Anki. Anki needs to be open as japtoAnki runs.
 
 ```bash
-japtoanki /path/to/directory --deck Kanji_Sentences --tag manga --no-furigana --translate en --mastered-kanji /path/to/file
+japtoAnki /path/to/directory --deck Kanji_Sentences --tag manga --no-furigana --translate en --mastered-kanji /path/to/file
 ```
 
 run `activate-global-python-argcomplete --user` in the terminal so that flags autocomplete when TAB is pressed.
 
 **Warning for manga / lightnovels:**
-The OCR struggles with front matter and is *very* prone to making mistakes and the japtoanki filters struggle with removing these mistakes.
+The OCR struggles with front matter and is *very* prone to making mistakes and the japtAAnki filters struggle with removing these mistakes.
 
 ##### Flags:
 
 `--deck` Name of the deck in Anki you would like to store the generated cards. If the deck doesn't exist, it will be created.
 
-`--tags` Tag each generated card. By default every card is tagged "japtoanki"
+`--tags` Tag each generated card. By default every card is tagged "japtoAnki"
 
 `--translate` Translate each sentence into desired language using Google-translate API (Default is en (english))
 
 `--no-furigana` Furigana is generated for kanji by default. Use this flag to disable.
 
-`--mastered-kanji` Provide a document containing kanji you have already mastered to update the known set. Can be manually edited at (~/.mastered_kanji_list(japtoanki).txt)
+`--mastered-kanji` Provide a document containing kanji you have already mastered to update the known set. Can be manually edited at (~/.mastered_kanji_list(japtoAnki).txt)
 
 ---
 
 ### Note Model
 
-Japtoanki creates a custom model in Anki with the following fields:
+JaptoAnki creates a custom model in Anki with the following fields:
 
 
 ### Note Model
-Japtoanki creates a custom Anki note type with the following fields:
+JaptoAnki creates a custom Anki note type with the following fields:
 
   ~ **Front**: Japanese sentence with kanji (e.g.,きょうはいいてんきですね)
 
@@ -119,3 +123,4 @@ Without any flags:
 ![Anki Card5](./images/2026-02-15-191442_hyprshot.png)
 
 ![Anki Card6](./images/2026-02-15-191733_hyprshot.png)
+
