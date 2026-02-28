@@ -40,7 +40,7 @@ pip install japtoAnki
 
 ## Usage
 
-<video src="./images/recording_2026-02-28_19-39-09.mp4" controls width="100%">
+<video src="https://github.com/user-attachments/assets/e5c33f2c-98dc-46d6-ae2c-7af367711e1a" controls width="100%">
   Your browser does not support the video tag.
 </video>
 
