@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 from deep_translator import GoogleTranslator #type: ignore
-from questionary import question
+from questionary import question #type: ignore
 import requests
 import time
 import tempfile
@@ -10,7 +10,7 @@ import csv
 import questionary #type: ignore
 from fugashi import Tagger #type: ignore # Supposedly could really use MeCab as the filter for bad sentences. . .
 import jaconv #type: ignore
-# import json
+import json
 # from pykakasi import kakasi # pykakasi to be replaced by something else. Makes mistakes.
 from tqdm import tqdm
 # from deep_translator import GoogleTranslator #LibreTranslator # GoogleTranslator giving me issues all day. Too much of a pain in the ass. Wasted so many hours. #type: ignore
@@ -44,6 +44,24 @@ def is_image(path):
 
 def is_text(path):
     return os.path.splitext(path)[1].lower() in TEXT_EXTS
+
+def fix_mojibake(text):
+
+    if not text:
+        return text
+
+    try:
+        fixed = text.encode("latin-1").decode("utf-8")
+        if containsKanji(fixed) or re.search(r'[\u4e00-\u9fff]', fixed):
+            return fixed
+    except:
+        pass
+    return text
+
+    # try:
+    #     return text.encode('latin-1').decode('utf-8')
+    # except (UnicodeEncodeError, UnicodeDecodeError):
+    #     return text
 
 def dir_contains_images(path):
     if not os.path.isdir(path):
@@ -287,11 +305,42 @@ def extract_sentences_from_input(path):
             return extract_from_single_image(path)
         
         if path.lower().endswith(".json"):
-            return extractSentences(os.path.dirname(path))
+            with open(path, "r", encoding="utf-8") as f:
+                try:
+                    rawJsonData = json.load(f)
+                    
+                    content_list = []
+                    if isinstance(rawJsonData, dict) and "messages" in rawJsonData:
+                        for msg in rawJsonData["messages"]:
+                            if isinstance(msg, dict) and "content" in msg:
+                                text = fix_mojibake(msg["content"])
+                                content_list.append(text)
+                        content = "\n".join(content_list)
+                        return splitParagraphs(content)
+                    return splitParagraphs(str(rawJsonData))
+                except Exception as e:
+                    print(f"JSON parse error: {e}")
+                    return []
+
+                #     fixedJsonData = fix_mojibake(rawJsonData)
+                #     jsonData = json.loads(fixedJsonData)
+                #     if isinstance(jsonData, list):
+                #         content = " ".join(map(str, jsonData))
+                #     elif isinstance(jsonData, dict):
+                #         content = " ".join(map(str, jsonData.values()))
+                #     else:
+                #         content = str(jsonData)
+                #
+                #     return splitParagraphs(content)
+                # except Exception as e:
+                #     print(f"JSON Parse error: {e}")
+                #     return extractSentences(os.path.dirname(path))
         
         if is_text(path):
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
+                if "\\u00e" in content:
+                    content = fix_mojibake(content)
                 sentences = []
                 for chunk in splitParagraphs(content):
                     sentences.append(chunk)
@@ -332,7 +381,7 @@ def extract_sentences_from_input(path):
                             if not kanjiFilter(chunk):
                                 continue
 
-                            tokens = list(useTagger()(chunk))
+                            tokens = list(useTagger()(chunk)) #type: ignore
                             if not noiseFilter(chunk) and MeCabFilter(tokens):
                                 sentences.append(chunk)
 
@@ -473,9 +522,12 @@ def create_anki_card(front, back, hochanhLinks, translation, deck, tags):
 #
 #         print("Invalid choice")
 
-def navigation(start=".", current_lang=None):
+def navigation(start=".", current_lang=None, current_deck="Kanji-Sentences", current_tags="japtoanki", current_limit=None):
     current = os.path.abspath(start)
     lang_label = current_lang if current_lang else "OFF"
+    deck_label = current_deck
+    tag_label = current_tags
+    limit_label = str(current_limit) if current_limit else "250"
     
     while True:
         try:
@@ -492,10 +544,10 @@ def navigation(start=".", current_lang=None):
         ))
         choices.append(questionary.Choice(title="  .. (Back)", value="GO_BACK"))
         choices.append(questionary.Separator())
-        choices.append(questionary.Choice(
-            title=f"🌐 [TOGGLE TRANSLATION: {lang_label}]",
-            value="Toggle_trans"
-        ))
+        choices.append(questionary.Choice(title=f"📦 [Deck Name: {deck_label}]", value="Set_deck"))
+        choices.append(questionary.Choice(title=f"🏷️ [TAGS: {tag_label}]", value="Set_tags"))
+        choices.append(questionary.Choice(title=f"🌐 [TOGGLE TRANSLATION: {lang_label}]", value="Toggle_trans"))
+        choices.append(questionary.Choice(title=f"🔢 [LIMIT EXTRACTION: {limit_label}]", value="Set_limit"))
         choices.append(questionary.Separator())
 
         for entry in entries:
@@ -517,7 +569,27 @@ def navigation(start=".", current_lang=None):
         ).ask()
 
         if answer == "QUIT" or answer is None:
-            return None, current_lang
+            return None
+
+        if answer == "Set_deck":
+            new_deck = questionary.text(
+                "Enter deck name:",
+                default=current_deck
+            ).ask()
+            if new_deck:
+                current_deck = new_deck.strip()
+                deck_label = current_deck
+            continue
+
+        if answer == "Set_tags":
+            new_tags = questionary.text(
+                "Enter tags (comma-separated):",
+                default=current_tags
+            ).ask()
+            if new_tags:
+                current_tags = new_tags.strip()
+                tag_label = current_tags
+            continue
 
         if answer == "Toggle_trans":
             if current_lang:
@@ -529,9 +601,27 @@ def navigation(start=".", current_lang=None):
                     current_lang = None
                 lang_label = current_lang if current_lang else "OFF"
             continue
+
+        if answer == "Set_limit":
+            new_limit = questionary.text(
+                "Limit number of sentences to be extracted: ",
+                default=str(current_limit) if current_limit else ""
+            ).ask()
+            if new_limit and new_limit.isdigit():
+                current_limit = int(new_limit)
+            else:
+                current_limit = None
+            limit_label = str(current_limit) if current_limit else "250"
+            continue
         
         if answer == "SELECT_CURRENT":
-            return current, current_lang
+            return {
+                "path": current,
+                "deck": current_deck,
+                "tags": current_tags,
+                "translate": current_lang,
+                "limit": current_limit
+            }
         
         if answer == "GO_BACK":
             current = os.path.dirname(current)
@@ -541,11 +631,17 @@ def navigation(start=".", current_lang=None):
         if os.path.isdir(answer):
             current = answer
         else:
-            return answer, current_lang
+            return {
+            "path": answer,
+            "deck": current_deck,
+            "tags": current_tags,
+            "translate": current_lang,
+            "limit": current_limit
+        }
 
 
-def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=None, translateLang=None, allSentences=False):
-    if len(knownSet) > 1:
+def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=None, translateLang=None, allSentences=False, limitExtraction=250):
+    if not knownSet:
         loadknownSet()
         print(f"📚 Loaded {len(knownSet)} known set.")
         log("📚", 34, f"Loaded {len(knownSet)} known set.")
@@ -612,14 +708,20 @@ def startProcessing(target_path, deck, tags, showFurigana=True, masteredKanji=No
     if not eligibleSentences:
         print("⚠️ No valid sentences")
         return
+    if limitExtraction and limitExtraction > 0:
+        original_count = len(eligibleSentences)
+        eligibleSentences = eligibleSentences[:limitExtraction]
+        log("✂️", 35, f"Limiting to {len(eligibleSentences)} of {original_count} sentences.")
     log("🧹", 33, f"Filtered: {filterCount} sentences.")
-
 
 
     # trans = ""
     toTranslate = []
 
     if translateLang:
+        if limitExtraction > 100:
+            log("⚠️", 33, "Large translation batch. May take a while.")
+
         # trans = translateSentence(clean, translateLang)
         translateExpress = [hoo['clean'] for hoo in eligibleSentences]
         toTranslate = translateChunks(translateExpress, translateLang)

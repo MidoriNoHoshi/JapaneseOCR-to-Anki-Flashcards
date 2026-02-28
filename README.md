@@ -40,6 +40,10 @@ pip install japtoAnki
 
 ## Usage
 
+<video src="./images/recording_2026-02-28_19-39-09.mp4" controls width="100%">
+  Your browser does not support the video tag.
+</video>
+
 **Command Line Interface**
 
 Running *japtoAnki* opens a file navigator.

@@ -64,21 +64,38 @@ Examples:
         help="Runs japtoanki as if 0 mastered-kanji."
     )
 
+    parser.add_argument(
+        "--limit",
+        type=int, 
+        default=250,
+        help="Limit number of sentences to extract (default: 250)"
+    )
+
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     if args.path:
         target = args.path
+        deck = args.deck
+        tags = args.tags
+        translateLanguage = args.translate
+        limitExtraction = args.limit
     else:
         print("\n🗂️  Interactive Directory Navigator")
         print("="*60)
-        target, nav_lang = navigation()
-    if target is None:
-        sys.exit(0)
+        nav_result = navigation(current_deck=args.deck, current_tags=args.tags, current_lang=args.translate, current_limit=args.limit)
+        if nav_result is None:
+            sys.exit(0)
+
+        target = nav_result["path"]
+        deck = nav_result["deck"]
+        tags = nav_result["tags"]
+        translateLanguage = nav_result["translate"]
+        limitExtraction = nav_result["limit"]
 
     try:
-        translateLanguage = args.translate if args.translate else nav_lang
-        startProcessing(target_path=target, deck=args.deck, tags=args.tags, showFurigana=not args.no_furigana, masteredKanji=args.mastered_kanji, translateLang=translateLanguage, allSentences=args.all_sentences)
+        startProcessing(target_path=target, deck=deck, tags=tags, showFurigana=not args.no_furigana, masteredKanji=args.mastered_kanji, translateLang=translateLanguage, allSentences=args.all_sentences, limitExtraction=limitExtraction)
+
         print("\n✅ Complete")
     except Exception as e:
         print(f"\n❌ Error: {e}")
